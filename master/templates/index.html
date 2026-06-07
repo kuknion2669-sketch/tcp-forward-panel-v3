@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head><meta charset="UTF-8"><title>v3 联动管理</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#070b14;color:#e2e8f0;font:14px/1.6 system-ui,sans-serif;padding:0;min-height:100vh}
+.topbar{background:#0d1225;border-bottom:1px solid #1e293b;padding:0 28px;height:56px;display:flex;align-items:center;justify-content:space-between}
+.brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:inherit}
+.brand-icon{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#8b5cf6,#6366f1);display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;font-weight:700}
+.brand-text{font-size:15px;font-weight:600;letter-spacing:.3px}
+.brand-text span{color:#64748b;font-weight:400}
+.top-actions{display:flex;gap:6px}
+.container{max-width:1320px;margin:0 auto;padding:24px 28px}
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px}
+.stat-card{background:#0d1225;border:1px solid #1e293b;border-radius:10px;padding:20px 24px;display:flex;align-items:center;gap:16px}
+.stat-icon{width:44px;height:44px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.stat-icon.purple{background:rgba(139,92,246,.12)}
+.stat-icon.green{background:rgba(34,197,94,.12)}
+.stat-icon.blue{background:rgba(59,130,246,.12)}
+.stat-val{font-size:22px;font-weight:700;line-height:1.2}
+.stat-lbl{font-size:12px;color:#64748b;margin-top:1px}
+h2{font-size:16px;font-weight:600;margin-bottom:16px}
+.card{background:#0d1225;border:1px solid #1e293b;border-radius:10px;padding:20px;margin-bottom:20px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:rgba(255,255,255,.03);color:#64748b;padding:10px 12px;text-align:left;font-weight:600;border-bottom:1px solid #1e293b}
+td{padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03)}
+tr:hover{background:rgba(139,92,246,.03)}
+a{color:#818cf8;text-decoration:none}
+.btn{display:inline-flex;align-items:center;gap:4px;padding:6px 14px;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;border:1px solid transparent}
+.btn-primary{background:#8b5cf6;color:#fff}.btn-primary:hover{background:#7c3aed}
+.btn-ghost{background:transparent;color:#64748b;border-color:#1e293b}.btn-ghost:hover{border-color:#64748b;color:#e2e8f0}
+.btn-sm{padding:4px 10px;font-size:12px}
+.dot{display:inline-block;width:6px;height:6px;border-radius:50%;vertical-align:middle}
+.dot-on{background:#22c55e}.dot-off{background:#ef4444}
+.tag{display:inline-block;padding:2px 6px;border-radius:3px;font-size:11px}
+.tag-on{background:rgba(34,197,94,.1);color:#22c55e}
+.tag-off{background:rgba(239,68,68,.1);color:#ef4444}
+.ft{text-align:center;font-size:11px;color:#475569;margin-top:30px;padding-bottom:20px}
+@media(max-width:720px){.stats-row{grid-template-columns:1fr}.container{padding:16px}}
+</style>
+</head><body>
+<div class="topbar">
+  <a href="/" class="brand"><div class="brand-icon">⛭</div><div class="brand-text">v3 联动管理 <span>· 总控</span></div></a>
+  <div class="top-actions">
+    <a href="/servers" class="btn btn-ghost btn-sm">服务器</a>
+    <a href="/chains" class="btn btn-ghost btn-sm">链路</a>
+    <a href="/logout" class="btn btn-ghost btn-sm">退出</a>
+  </div>
+</div>
+<div class="container">
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-icon purple">🖥</div><div class="stat-body"><div class="stat-val">{{ servers|length }}</div><div class="stat-lbl">管理节点</div></div></div>
+    <div class="stat-card"><div class="stat-icon green">🔗</div><div class="stat-body"><div class="stat-val">{{ chains|length }}</div><div class="stat-lbl">转发链路</div></div></div>
+    <div class="stat-card"><div class="stat-icon blue">✅</div><div class="stat-body"><div class="stat-val">{{ statuses|selectattr('alive')|list|length }}/{{ servers|length }}</div><div class="stat-lbl">节点在线</div></div></div>
+  </div>
+
+  <h2>节点概览</h2>
+  <div class="card">
+  <table>
+    <tr><th>名称</th><th>地址</th><th>角色</th><th>状态</th><th>操作</th></tr>
+    {% for st in statuses %}
+    <tr>
+      <td style="font-weight:600">{{ st.name }}</td>
+      <td style="color:#64748b;font-family:monospace">{{ st.host }}:{{ st.port if st.port else '?' }}</td>
+      <td style="color:#64748b">{{ st.role or '-' }}</td>
+      <td>{% if st.alive %}<span class="tag tag-on"><span class="dot dot-on"></span> 在线</span>{% else %}<span class="tag tag-off"><span class="dot dot-off"></span> 离线</span>{% endif %}</td>
+      <td><a href="/servers" class="btn btn-ghost btn-sm">管理</a></td>
+    </tr>
+    {% else %}
+    <tr><td colspan="5" style="text-align:center;padding:30px;color:#64748b">暂无节点，请先在「服务器」中添加</td></tr>
+    {% endfor %}
+  </table>
+  </div>
+
+  <h2>转发链路</h2>
+  <div class="card">
+  <table>
+    <tr><th>名称</th><th>入口节点</th><th>中转节点</th><th>目标</th><th>状态</th></tr>
+    {% for c in chains %}
+    <tr>
+      <td style="font-weight:600">{{ c.name }}</td>
+      <td style="color:#64748b">{{ c.entry_server }}</td>
+      <td style="color:#64748b">{{ c.trans_server }}</td>
+      <td style="color:#64748b;font-family:monospace">{{ c.dest_ip }}:{{ c.dest_port }}</td>
+      <td>{% if c.enabled %}<span class="tag tag-on">启用</span>{% else %}<span class="tag tag-off">停用</span>{% endif %}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="5" style="text-align:center;padding:30px;color:#64748b">暂无链路</td></tr>
+    {% endfor %}
+  </table>
+  </div>
+  <div class="ft">v3 · 联动管理面板</div>
+</div>
+</body></html>

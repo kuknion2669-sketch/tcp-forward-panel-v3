@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head><meta charset="UTF-8"><title>服务器管理 — v3</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#070b14;color:#e2e8f0;font:14px/1.6 system-ui,sans-serif;padding:0;min-height:100vh}
+.topbar{background:#0d1225;border-bottom:1px solid #1e293b;padding:0 28px;height:56px;display:flex;align-items:center;justify-content:space-between}
+.brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:inherit}
+.brand-icon{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#8b5cf6,#6366f1);display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;font-weight:700}
+.brand-text{font-size:15px;font-weight:600;letter-spacing:.3px}
+.container{max-width:1000px;margin:0 auto;padding:24px 28px}
+h2{font-size:16px;font-weight:600;margin-bottom:16px}
+a{color:#818cf8;text-decoration:none}
+input,select{padding:8px 12px;border-radius:6px;border:1px solid #1e293b;background:#111827;color:#e2e8f0;font-size:13px;outline:none;width:100%;box-sizing:border-box}
+input:focus{border-color:#8b5cf6}
+.card{background:#0d1225;border:1px solid #1e293b;border-radius:10px;padding:20px;margin-bottom:20px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:rgba(255,255,255,.03);color:#64748b;padding:10px 12px;text-align:left;font-weight:600;border-bottom:1px solid #1e293b}
+td{padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.03)}
+tr:hover{background:rgba(139,92,246,.03)}
+.btn{display:inline-flex;align-items:center;gap:4px;padding:6px 14px;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;border:1px solid transparent}
+.btn-primary{background:#8b5cf6;color:#fff}.btn-primary:hover{background:#7c3aed}
+.btn-ghost{background:transparent;color:#64748b;border-color:#1e293b}.btn-ghost:hover{border-color:#64748b;color:#e2e8f0}
+.btn-danger{background:rgba(239,68,68,.1);color:#ef4444;border-color:rgba(239,68,68,.2)}.btn-danger:hover{background:#ef4444;color:#fff}
+.btn-sm{padding:4px 10px;font-size:12px}
+.tag{display:inline-block;padding:2px 6px;border-radius:3px;font-size:11px}
+.tag-on{background:rgba(34,197,94,.1);color:#22c55e}
+.tag-off{background:rgba(239,68,68,.1);color:#ef4444}
+.dot{display:inline-block;width:6px;height:6px;border-radius:50%;vertical-align:middle}
+.dot-on{background:#22c55e}.dot-off{background:#ef4444}
+.form-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:12px;align-items:end}
+.form-row label{display:block;font-size:11px;color:#64748b;margin-bottom:4px}
+.ft{text-align:center;font-size:11px;color:#475569;margin-top:30px}
+@media(max-width:720px){.container{padding:16px}.form-row{grid-template-columns:1fr}}
+</style>
+</head><body>
+<div class="topbar">
+  <a href="/" class="brand"><div class="brand-icon">⛭</div><div class="brand-text">v3 联动管理 <span style="color:#64748b;font-weight:400">· 服务器</span></div></a>
+  <a href="/">← 返回总控</a>
+</div>
+<div class="container">
+  <h2>管理节点</h2>
+  <div class="card">
+  <table>
+    <tr><th>名称</th><th>地址</th><th>角色</th><th>状态</th><th>备注</th><th>操作</th></tr>
+    {% for s in servers %}
+    {% set st = statuses|selectattr('id','equalto',s.id)|first %}
+    <tr>
+      <td style="font-weight:600">{{ s.name }}</td>
+      <td style="color:#64748b;font-family:monospace">{{ s.host }}:{{ s.port }}</td>
+      <td style="color:#64748b">{{ s.role or '-' }}</td>
+      <td>{% if st and st.alive %}<span class="tag tag-on"><span class="dot dot-on"></span> 在线</span>{% else %}<span class="tag tag-off"><span class="dot dot-off"></span> 离线</span>{% endif %}</td>
+      <td style="color:#64748b;font-size:12px">{{ s.note or '' }}</td>
+      <td><a href="/servers/del/{{ s.id }}" class="btn btn-danger btn-sm" onclick="return confirm('确定删除?')">删除</a></td>
+    </tr>
+    {% else %}
+    <tr><td colspan="6" style="text-align:center;padding:30px;color:#64748b">暂无节点</td></tr>
+    {% endfor %}
+  </table>
+  </div>
+
+  <h2>添加节点</h2>
+  <div class="card">
+  <form method="post" action="/servers/add">
+    <div class="form-row">
+      <div><label>节点名称</label><input name="name" placeholder="例如：湖南服务器" required></div>
+      <div><label>IP 地址</label><input name="host" placeholder="1.2.3.4" required></div>
+      <div><label>面板端口</label><input name="port" value="8080"></div>
+    </div>
+    <div class="form-row">
+      <div><label>登录账号</label><input name="username" value="admin"></div>
+      <div><label>登录密码</label><input name="password" value="admin123"></div>
+      <div><label>角色</label><input name="role" placeholder="入口/中转/落地"></div>
+    </div>
+    <div class="form-row">
+      <div><label>备注</label><input name="note" placeholder="备注信息"></div>
+      <div style="display:flex;align-items:end"><button class="btn btn-primary" type="submit" style="width:100%">添加节点</button></div>
+    </div>
+  </form>
+  </div>
+  <div class="ft">v3 · 联动管理面板</div>
+</div>
+</body></html>
