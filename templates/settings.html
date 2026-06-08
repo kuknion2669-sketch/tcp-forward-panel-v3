@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>设置 - V3 链路管理</title>
+<style>
+:root{--bg:#070b14;--card:#0d1225;--card2:#111827;--border:#1e293b;--text:#e2e8f0;--text2:#64748b;--primary:#3b82f6;--primary-dim:#1d4ed8;--radius:10px;--radius-sm:6px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font:14px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif}
+.topbar{background:var(--card);border-bottom:1px solid var(--border);padding:0 28px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.brand{display:flex;align-items:center;gap:12px}
+.brand-icon{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--primary),#6366f1);display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;font-weight:700}
+.brand-text{font-size:15px;font-weight:600;letter-spacing:.3px}
+.brand-text span{color:var(--text2);font-weight:400}
+.container{max-width:800px;margin:0 auto;padding:24px 28px}
+h2{font-size:16px;font-weight:600;margin-bottom:20px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:20px}
+.card h3{font-size:14px;font-weight:600;margin-bottom:16px;color:var(--text)}
+.server-item{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border)}
+.server-item:last-child{border-bottom:none}
+.server-info{flex:1}
+.server-name{font-weight:600;font-size:14px}
+.server-url{font-size:12px;color:var(--text2);margin-top:2px;font-family:monospace}
+.server-actions{display:flex;gap:6px}
+.btn{display:inline-flex;align-items:center;gap:4px;padding:6px 14px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;cursor:pointer;border:1px solid transparent;transition:all .12s}
+.btn-primary{background:var(--primary);color:#fff}.btn-primary:hover{background:var(--primary-dim)}
+.btn-ghost{background:transparent;color:var(--text2);border-color:var(--border)}.btn-ghost:hover{border-color:var(--text2);color:var(--text)}
+.btn-danger{background:rgba(239,68,68,.1);color:#ef4444;border-color:rgba(239,68,68,.2)}.btn-danger:hover{background:#ef4444;color:#fff;border-color:#ef4444}
+.btn-sm{padding:4px 10px;font-size:12px}
+.input-group{margin-bottom:12px}
+.input-group label{display:block;font-size:12px;color:var(--text2);margin-bottom:4px}
+.input-group input{width:100%;padding:8px 12px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--card2);color:var(--text);font-size:13px;outline:none}
+.input-group input:focus{border-color:var(--primary)}
+.add-row{display:flex;gap:10px;margin-top:16px}
+.add-row input{flex:1}
+.empty-hint{font-size:13px;color:var(--text2);text-align:center;padding:20px}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a href="/" style="text-decoration:none;color:inherit">
+    <div class="brand">
+      <div class="brand-icon">&#x2699;</div>
+      <div class="brand-text">设置 <span>V3 链路管理</span></div>
+    </div>
+  </a>
+  <div class="top-actions" style="display:flex;gap:8px">
+    <a href="/" class="btn btn-ghost btn-sm">&#x2190; 返回</a>
+  </div>
+</div>
+<div class="container">
+  <div class="card">
+    <h3>v2 中转服务器</h3>
+    <div id="serverList">
+      {% for s in servers %}
+      <div class="server-item" data-id="{{ s.id }}">
+        <div class="server-info">
+          <div class="server-name">{{ s.name }}</div>
+          <div class="server-url">{{ s.api_url }}</div>
+        </div>
+        <div class="server-actions">
+          {% if s.id != 1 %}
+          <button class="btn btn-danger btn-sm" onclick="delServer({{ s.id }})">删除</button>
+          {% else %}
+          <span class="btn btn-ghost btn-sm" style="cursor:default;color:var(--text2)">默认</span>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="add-row">
+      <input id="newName" placeholder="服务器名称 (如 主力中转)">
+      <input id="newUrl" placeholder="API 地址 (如 http://192.168.1.1:8080)" style="flex:1.5">
+      <button class="btn btn-primary" onclick="addServer()">添加</button>
+    </div>
+  </div>
+  <div style="font-size:12px;color:var(--text2);text-align:center;padding:12px">
+    创建链路时可选择使用哪个 v2 中转服务器
+  </div>
+</div>
+<script>
+async function addServer(){
+  var name=document.getElementById('newName').value.trim()
+  var url=document.getElementById('newUrl').value.trim()
+  if(!name||!url){alert('请填写名称和地址');return}
+  var r=await fetch('/api/v3/servers/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name,url:url})})
+  var d=await r.json()
+  if(d.error){alert(d.error)}
+  else{location.reload()}
+}
+async function delServer(id){
+  if(!confirm('确定删除该服务器？已有链路将使用默认服务器。'))return
+  var r=await fetch('/api/v3/servers/del/'+id,{method:'POST'})
+  var d=await r.json()
+  if(d.error){alert(d.error)}
+  else{location.reload()}
+}
+</script>
+</body>
+</html>

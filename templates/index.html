@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>V3 链路管理</title>
+<style>
+:root{
+  --bg:#070b14;--card:#0d1225;--card2:#111827;--border:#1e293b;
+  --text:#e2e8f0;--text2:#64748b;--text3:#475569;
+  --primary:#3b82f6;--primary-dim:#1d4ed8;--primary-glow:rgba(59,130,246,.15);
+  --success:#22c55e;--danger:#ef4444;--warn:#eab308;--info:#06b6d4;
+  --radius:10px;--radius-sm:6px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font:14px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;padding:0;min-height:100vh}
+
+.topbar{
+  background:var(--card);border-bottom:1px solid var(--border);
+  padding:0 28px;height:56px;display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:100;
+}
+.brand{display:flex;align-items:center;gap:12px}
+.brand-icon{
+  width:32px;height:32px;border-radius:8px;
+  background:linear-gradient(135deg,var(--primary),#6366f1);
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;color:#fff;font-weight:700;
+}
+.brand-text{font-size:15px;font-weight:600;letter-spacing:.3px}
+.brand-text span{color:var(--text2);font-weight:400}
+.top-actions{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+
+.container{max-width:1320px;margin:0 auto;padding:24px 28px}
+
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px}
+.stat-card{
+  background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  padding:20px 24px;display:flex;align-items:center;gap:16px;
+}
+.stat-icon{
+  width:44px;height:44px;border-radius:var(--radius-sm);
+  display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0
+}
+.stat-icon.blue{background:rgba(59,130,246,.12)}
+.stat-icon.green{background:rgba(34,197,94,.12)}
+.stat-icon.purple{background:rgba(139,92,246,.12)}
+.stat-body{min-width:0}
+.stat-val{font-size:22px;font-weight:700;line-height:1.2}
+.stat-lbl{font-size:12px;color:var(--text2);margin-top:1px}
+
+.nlist{display:flex;flex-direction:column;gap:8px}
+.node{
+  background:var(--card);border:1px solid var(--border);border-radius:var(--radius);
+  padding:16px 20px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;
+  transition:border-color .1s
+}
+.node:hover{border-color:var(--text3)}
+.node-info{flex:1;min-width:200px}
+.node-name{font-weight:600;font-size:14px;margin-bottom:2px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.node-route{
+  font-family:"SF Mono",Consolas,monospace;font-size:13px;
+  color:var(--primary);background:var(--primary-glow);border:1px solid rgba(59,130,246,.2);
+  border-radius:4px;padding:2px 10px;display:inline-block
+}
+.node-meta{font-size:12px;color:var(--text2);margin-top:4px;display:flex;gap:16px;flex-wrap:wrap}
+.node-actions{display:flex;gap:4px;flex-wrap:wrap}
+
+.bdg{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:2px 8px;border-radius:4px;font-size:11px;font-weight:500
+}
+.bdg-on{background:rgba(34,197,94,.1);color:var(--success)}
+.bdg-off{background:rgba(239,68,68,.1);color:var(--danger)}
+.bdg-gray{background:rgba(100,116,139,.1);color:#94a3b8;border-color:rgba(100,116,139,.2)}
+
+.btn{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:6px 14px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;
+  cursor:pointer;border:1px solid transparent;transition:all .12s;line-height:1.4
+}
+.btn-primary{background:var(--primary);color:#fff}.btn-primary:hover{background:var(--primary-dim)}
+.btn-ghost{background:transparent;color:var(--text2);border-color:var(--border)}.btn-ghost:hover{border-color:var(--text2);color:var(--text)}
+.btn-danger{background:rgba(239,68,68,.1);color:var(--danger);border-color:rgba(239,68,68,.2)}.btn-danger:hover{background:var(--danger);color:#fff;border-color:var(--danger)}
+.btn-sm{padding:4px 10px;font-size:12px}
+.btn-xs{padding:3px 8px;font-size:11px;border-radius:4px}
+
+.toggle-sw{display:inline-flex;align-items:center;gap:6px;cursor:pointer;user-select:none}
+.toggle-sw input{display:none}
+.toggle-track{width:36px;height:20px;border-radius:10px;position:relative;transition:all .2s;flex-shrink:0;display:inline-block}
+.toggle-thumb{position:absolute;top:2px;width:14px;height:14px;border-radius:50%;transition:all .2s;display:block}
+
+.modal-bg{display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);align-items:center;justify-content:center}
+.modal-bg.open{display:flex}
+.modal-box{
+  background:var(--card);border:1px solid var(--border);border-radius:12px;
+  padding:28px;width:90%;max-width:520px;max-height:90vh;overflow-y:auto
+}
+.modal-box h3{font-size:16px;font-weight:600;margin-bottom:20px;color:var(--text)}
+.modal-box label{display:block;font-size:12px;color:var(--text2);margin:12px 0 4px}
+.modal-box input,.modal-box textarea{
+  width:100%;padding:8px 12px;border-radius:var(--radius-sm);border:1px solid var(--border);
+  background:var(--card2);color:var(--text);font-size:13px;outline:none
+}
+.modal-box input:focus{border-color:var(--primary)}
+
+.dot{display:inline-block;width:6px;height:6px;border-radius:50%;vertical-align:middle}
+.dot-on{background:var(--success)}
+.dot-off{background:var(--danger)}
+.dot-exp{background:var(--warn)}
+.grp-tag{font-size:10px;color:var(--text3);border:1px solid var(--border);border-radius:3px;padding:1px 5px}
+.empty{text-align:center;padding:60px 20px;color:var(--text2)}
+.footer{text-align:center;font-size:11px;color:var(--text3);margin-top:40px;padding-bottom:20px}
+
+@media(max-width:720px){
+  .container{padding:16px}
+  .topbar{padding:0 16px}
+  .stats-row{grid-template-columns:1fr}
+  .node{flex-direction:column}
+}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <a href="/" style="text-decoration:none;color:inherit">
+    <div class="brand">
+      <div class="brand-icon">&#x2B23;</div>
+      <div class="brand-text">V3 链路管理 <span>v3 &#x2192; v2 API</span></div>
+    </div>
+  </a>
+  <div class="top-actions">
+    <button class="btn btn-primary btn-sm" onclick="showAdd()">+ 新建链路</button>
+    <a href="/settings" class="btn btn-ghost btn-sm">&#x2699; 设置</a>
+    <button class="btn btn-ghost btn-sm" onclick="location.reload()">&#x21bb; 刷新</button>
+  </div>
+</div>
+
+<div class="container">
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-icon blue">&#x1F4E6;</div>
+      <div class="stat-body">
+        <div class="stat-val">{{ total }}</div>
+        <div class="stat-lbl">总链路</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon green">&#x1F4CA;</div>
+      <div class="stat-body">
+        <div class="stat-val">{{ active }}</div>
+        <div class="stat-lbl">运行中</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon purple">&#x1F310;</div>
+      <div class="stat-body">
+        <div class="stat-val">{{ total_traffic }} GB</div>
+        <div class="stat-lbl">总流量</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="nlist">
+  {% for c in chains %}
+    <div class="node">
+      <div class="node-info">
+        <div class="node-name">
+          {{ c.name }}
+          {% if c.group_name %}<span class="grp-tag">{{ c.group_name }}</span>{% endif %}
+        </div>
+        <div class="node-route">{{ c.port }} &#x2192; 中转:{{ c.relay_port }} &#x2192; {{ c.dest_ip }}:{{ c.dest_port }}</div>
+        <div class="node-meta">
+          <span>v2: {{ c.v2_name }}</span>
+          <span>Reldens:{{ c.port }}</span>
+          <span>中转:{{ c.relay_port }}</span>
+          <span>流量 {{ c.v2_used_gb }} GB</span>
+        </div>
+      </div>
+      <div class="node-actions">
+        {% if c.enable and c.v2_enable %}
+          <span class="bdg bdg-on"><span class="dot dot-on"></span> 正常</span>
+        {% elif c.enable and not c.v2_enable %}
+          <span class="bdg bdg-on" style="background:rgba(234,179,8,.1);color:#eab308"><span class="dot" style="background:#eab308"></span> 中转异常</span>
+        {% else %}
+          <span class="bdg bdg-off"><span class="dot dot-off"></span> 停用</span>
+        {% endif %}
+        <div class="toggle-btn" data-cid="{{ c.id }}" data-enable="{{ 1 if c.enable else 0 }}" onclick="toggle(this)" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;user-select:none">
+          <span class="toggle-track" style="background:{% if c.enable %}rgba(59,130,246,.2){% else %}#1e293b{% endif %};border:1px solid {% if c.enable %}rgba(59,130,246,.4){% else %}#334155{% endif %}">
+            <span class="toggle-thumb" style="{% if c.enable %}left:18px;background:#3b82f6{% else %}left:2px;background:#64748b{% endif %}"></span>
+          </span>
+          <span class="toggle-lbl" style="font-size:11px;color:{% if c.enable %}#3b82f6{% else %}#64748b{% endif %};min-width:2em">{% if c.enable %}启用{% else %}停用{% endif %}</span>
+        </div>
+        <button class="btn btn-danger btn-xs" onclick="del({{ c.id }})">删除</button>
+      </div>
+    </div>
+  {% else %}
+    <div class="empty">
+      <div style="font-size:16px;color:var(--text2);margin-bottom:8px">暂无链路</div>
+      <div style="font-size:13px">点击上方 [+ 新建链路] 添加，系统自动打通 Reldens &#x2192; 中转 &#x2192; 落地机</div>
+    </div>
+  {% endfor %}
+  </div>
+
+  <div class="footer">V3 链路管理 · 自动同步 v2 转发规则</div>
+</div>
+
+<div class="modal-bg" id="addModal">
+  <div class="modal-box">
+    <h3>新建链路</h3>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.5">
+      填写落地机信息，系统自动创建完整的转发链路：<br>
+      Reldens &#x2192; 中转服务器 &#x2192; 落地机
+    </div>
+    <label>链路名称</label><input id="in_name" placeholder="例如: 客户A-美区">
+    <label>落地机 IP</label><input id="in_ip" placeholder="45.195.76.209">
+    <label>落地机端口</label><input id="in_port" placeholder="443">
+    <label>分组（可选）</label><input id="in_group" placeholder="美区、香港、马来...">
+    <label>中转服务器</label><select id="in_v2_server" style="width:100%;padding:8px 12px;margin-bottom:10px;background:var(--card2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:13px;outline:none">
+      {% for vs in v2_servers %}
+      <option value="{{ vs.id }}">{{ vs.name }} ({{ vs.api_url }})</option>
+      {% endfor %}
+    </select>
+    <div style="display:flex;gap:10px;margin-top:20px">
+      <button class="btn btn-primary" onclick="submitAdd()" id="addBtn" style="flex:1">创建</button>
+      <button class="btn btn-ghost" onclick="hideAdd()" style="flex:1;text-align:center">取消</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function showAdd(){document.getElementById('addModal').classList.add('open')}
+function hideAdd(){document.getElementById('addModal').classList.remove('open')}
+document.getElementById('addModal').addEventListener('click',function(e){if(e.target===e.currentTarget)hideAdd()})
+
+function toast(m,e){
+  var t=document.createElement('div')
+  t.style.cssText='position:fixed;bottom:24px;right:24px;background:'+(e?'#991b1b':'#166534')+';color:#fff;padding:12px 20px;border-radius:8px;font-size:.85rem;z-index:2000;transition:.3s'
+  t.textContent=m;document.body.appendChild(t)
+  setTimeout(function(){t.style.opacity='0';setTimeout(function(){t.remove()},300)},3000)
+}
+
+async function submitAdd(){
+  var n=document.getElementById('in_name').value.trim()
+  var ip=document.getElementById('in_ip').value.trim()
+  var p=document.getElementById('in_port').value.trim()
+  if(!n||!ip||!p){toast('请填写名称、IP 和端口',true);return}
+  var btn=document.getElementById('addBtn')
+  btn.textContent='创建中...';btn.disabled=true
+  try{
+    var r=await fetch('/api/v3/chain/add',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        name:n,dest_ip:ip,dest_port:p,
+        group_name:document.getElementById('in_group').value.trim(),
+        v2_server_id:parseInt(document.getElementById('in_v2_server').value)
+      })
+    })
+    var d=await r.json()
+    if(d.error){toast('创建失败: '+d.error,true)}
+    else{toast('创建成功');hideAdd();location.reload()}
+  }catch(e){toast('请求失败: '+e.message,true)}
+  btn.textContent='创建';btn.disabled=false
+}
+
+async function toggle(el){
+  var cid=el.getAttribute('data-cid')
+  var enable=el.getAttribute('data-enable')==='1'
+  try{
+    var r=await fetch('/api/v3/chain/toggle/'+cid,{method:'POST'})
+    var d=await r.json()
+    if(d.error){toast('失败: '+d.error,true);return}
+    el.setAttribute('data-enable',d.status==='enabled'?'1':'0')
+    var track=el.querySelector('.toggle-track')
+    var thumb=el.querySelector('.toggle-thumb')
+    var lbl=el.querySelector('.toggle-lbl')
+    if(d.status==='enabled'){
+      track.style.background='rgba(59,130,246,.2)';track.style.borderColor='rgba(59,130,246,.4)'
+      thumb.style.left='18px';thumb.style.background='#3b82f6'
+      lbl.textContent='启用';lbl.style.color='#3b82f6'
+    }else{
+      track.style.background='#1e293b';track.style.borderColor='#334155'
+      thumb.style.left='2px';thumb.style.background='#64748b'
+      lbl.textContent='停用';lbl.style.color='#64748b'
+    }
+  }catch(e){toast('失败',true);location.reload()}
+}
+
+async function del(cid){
+  if(!confirm('确定删除该链路？中转规则也会同步删除。'))return
+  try{
+    var r=await fetch('/api/v3/chain/del/'+cid,{method:'POST'})
+    var d=await r.json()
+    if(d.error){toast('删除失败: '+d.error,true)}
+    else{location.reload()}
+  }catch(e){toast('请求失败',true)}
+}
+</script>
+</body>
+</html>
